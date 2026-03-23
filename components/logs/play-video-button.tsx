@@ -95,28 +95,28 @@ export function PlayVideoButton({ logId, startedAt, durationSec, status }: PlayV
           type="button"
           onClick={onClick}
           disabled={loading}
-          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 disabled:opacity-50"
+          className="rounded-lg border border-accent/80 px-4 py-2 text-sm font-medium text-dark/90 disabled:opacity-50"
         >
           {loading ? "Loading..." : "Load video"}
         </button>
       ) : null}
 
       {polling && !url ? (
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+        <div className="rounded-lg border border-accent/40 bg-light p-3 text-sm text-dark/80">
           <div className="flex items-center gap-2">
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-accent/80 border-t-zinc-700" />
             <span>Preparing video. We will auto-load it when ready.</span>
           </div>
-          <p className="mt-2 text-xs text-zinc-600">
+          <p className="mt-2 text-xs text-dark/70">
             Expected after: {expectedTimeLabel}
             {secondsLeft > 0 ? ` (${secondsLeft}s remaining)` : " (checking now)"}
           </p>
         </div>
       ) : null}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-error">{error}</p> : null}
 
-      {url ? <video src={url} controls className="w-full rounded-xl border border-zinc-200" /> : null}
+      {url ? <video src={url} controls className="w-full rounded-xl border border-accent/40" /> : null}
     </div>
   );
 }

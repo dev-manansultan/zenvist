@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { probeUrl } from "@/lib/url-health";
 import { createJobSchema } from "@/lib/validation/jobs";
 
 export async function GET() {
@@ -49,6 +50,20 @@ export async function POST(request: Request) {
   }
 
   const payload = parsed.data;
+
+  const probe = await probeUrl(payload.url);
+  if (!probe.reachable) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "url_unreachable",
+          message: "URL check failed. Make sure the website is reachable and try again.",
+        },
+      },
+      { status: 400 },
+    );
+  }
 
   const insertPayload = {
     user_id: userData.user.id,

@@ -28,13 +28,76 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<{
+    resolvedUrl: string;
+    visitTime: string;
+    repeatType: RepeatType;
+    durationSec: number;
+    initialStatus: string;
+    statusCode: number | null;
+  } | null>(null);
+  const [hasPreviewed, setHasPreviewed] = useState(mode === "edit");
 
   const canSubmit = useMemo(() => {
     return Boolean(url && visitTime && durationSec >= 15 && durationSec <= 300);
   }, [url, visitTime, durationSec]);
 
+  function resetPreviewState() {
+    if (mode !== "create") return;
+    setHasPreviewed(false);
+    setPreviewData(null);
+    setPreviewError(null);
+  }
+
+  async function onPreview() {
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setPreviewData(null);
+
+    const payload = {
+      url,
+      visitTime: new Date(visitTime).toISOString(),
+      repeatType,
+      durationSec,
+    };
+
+    const response = await fetch("/api/jobs/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await response.json().catch(() => null);
+    setPreviewLoading(false);
+
+    if (!response.ok) {
+      setHasPreviewed(false);
+      setPreviewError(body?.error?.message ?? "Preview failed");
+      return;
+    }
+
+    const preview = body?.data?.preview;
+    setPreviewData({
+      resolvedUrl: preview.resolvedUrl,
+      visitTime: preview.visitTime,
+      repeatType: preview.repeatType,
+      durationSec: preview.durationSec,
+      initialStatus: preview.initialStatus,
+      statusCode: preview?.probe?.status ?? null,
+    });
+    setHasPreviewed(true);
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (mode === "create" && !hasPreviewed) {
+      setError("Preview the job first before creating it.");
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -80,10 +143,14 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
           type="url"
           required
           value={url}
-          onChange={(event) => setUrl(event.target.value)}
+          onChange={(event) => {
+            setUrl(event.target.value);
+            resetPreviewState();
+          }}
           className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           placeholder="https://example.com"
         />
+        {mode === "create" ? <p className="text-xs text-zinc-500">Preview checks URL reachability before creation.</p> : null}
       </div>
 
       <div className="space-y-1">
@@ -95,7 +162,10 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
           type="datetime-local"
           required
           value={visitTime}
-          onChange={(event) => setVisitTime(event.target.value)}
+          onChange={(event) => {
+            setVisitTime(event.target.value);
+            resetPreviewState();
+          }}
           className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
       </div>
@@ -108,7 +178,10 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
           <select
             id="repeat-type"
             value={repeatType}
-            onChange={(event) => setRepeatType(event.target.value as RepeatType)}
+            onChange={(event) => {
+              setRepeatType(event.target.value as RepeatType);
+              resetPreviewState();
+            }}
             className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           >
             <option value="once">Once</option>
@@ -127,7 +200,10 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
             min={15}
             max={300}
             value={durationSec}
-            onChange={(event) => setDurationSec(Number(event.target.value))}
+            onChange={(event) => {
+              setDurationSec(Number(event.target.value));
+              resetPreviewState();
+            }}
             className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
@@ -145,15 +221,56 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
         </label>
       ) : null}
 
+      {mode === "create" ? (
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={!canSubmit || previewLoading}
+              onClick={onPreview}
+              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 disabled:opacity-50"
+            >
+              {previewLoading ? "Checking preview..." : "Preview job"}
+            </button>
+            <p className="text-xs text-zinc-600">Required before creating.</p>
+          </div>
+
+          {previewError ? <p className="mt-3 text-sm text-red-600">{previewError}</p> : null}
+
+          {previewData ? (
+            <div className="mt-3 space-y-1 text-sm text-zinc-700">
+              <p>
+                <span className="font-medium">Resolved URL:</span> {previewData.resolvedUrl}
+              </p>
+              <p>
+                <span className="font-medium">Status code:</span> {previewData.statusCode ?? "n/a"}
+              </p>
+              <p>
+                <span className="font-medium">Schedule:</span> {new Date(previewData.visitTime).toLocaleString()}
+              </p>
+              <p>
+                <span className="font-medium">Repeat:</span> {previewData.repeatType}
+              </p>
+              <p>
+                <span className="font-medium">Duration:</span> {previewData.durationSec}s
+              </p>
+              <p>
+                <span className="font-medium">Initial status:</span> {previewData.initialStatus}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <div className="flex items-center gap-2">
         <button
-          disabled={loading || !canSubmit}
+          disabled={loading || !canSubmit || (mode === "create" && !hasPreviewed)}
           type="submit"
           className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          {loading ? "Saving..." : mode === "create" ? "Create job" : "Update job"}
+          {loading ? (mode === "create" ? "Checking URL and saving..." : "Saving...") : mode === "create" ? "Create job" : "Update job"}
         </button>
         <button
           type="button"

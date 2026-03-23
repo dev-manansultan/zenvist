@@ -86,5 +86,16 @@ You must set CRON_SECRET in Vercel environment variables and send it as:
 
 ## Current Runner Note
 
-The cron route currently executes a lightweight HTTP visit simulation and writes logs.
-Playwright session recording/upload can be plugged into app/api/internal/run-due-jobs/route.ts once you finalize runtime constraints.
+The cron route executes a Playwright session, records video, uploads to Supabase Storage, and writes logs.
+
+Implementation file:
+- app/api/internal/run-due-jobs/route.ts
+
+Playwright runtime helper:
+- lib/visit-agent.ts
+
+## Runtime Notes for Vercel
+
+- Browser automation uses `playwright-core` with `@sparticuz/chromium`.
+- Keep `MAX_DURATION_SEC` conservative to fit serverless limits.
+- Start with small `BATCH_SIZE` (3-5) and scale cautiously.

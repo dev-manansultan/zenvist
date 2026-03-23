@@ -3,55 +3,19 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { createIdempotencyKey, computeNextRunAt, getBackoffMinutes, toIso } from "@/lib/jobs";
+import { runPlaywrightVisit } from "@/lib/visit-agent";
 import { env } from "@/lib/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { RepeatType, VisitJob } from "@/lib/types";
 
 export const maxDuration = 60;
 
-async function runVisitSimulation(job: VisitJob) {
-  const startedAt = new Date();
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), Math.max(5, Math.min(env.maxDurationSec, 240)) * 1000);
-
-    const response = await fetch(job.url, {
-      method: "GET",
-      signal: controller.signal,
-      cache: "no-store",
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      throw new Error(`Visit failed with status ${response.status}`);
-    }
-
-    const endedAt = new Date();
-
-    return {
-      status: "success" as const,
-      startedAt,
-      endedAt,
-      durationSec: Math.max(1, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)),
-      videoPath: null,
-      errorCode: null,
-      errorMessage: null,
-    };
-  } catch (error) {
-    const endedAt = new Date();
-
-    return {
-      status: "failed" as const,
-      startedAt,
-      endedAt,
-      durationSec: Math.max(1, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)),
-      videoPath: null,
-      errorCode: "visit_failed",
-      errorMessage: error instanceof Error ? error.message : "Visit failed",
-    };
-  }
+function buildVideoPath(userId: string, jobId: string, logId: string) {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  return `${userId}/${jobId}/${year}/${month}/${day}/${logId}.webm`;
 }
 
 function isAuthorized(request: Request) {
@@ -86,34 +50,56 @@ export async function GET(request: Request) {
   let failed = 0;
 
   for (const job of (claimedJobs ?? []) as VisitJob[]) {
-    const result = await runVisitSimulation(job);
+    const logId = randomUUID();
+    const result = await runPlaywrightVisit(job, env.maxDurationSec);
     const attemptCount = (job.attempt_count ?? 0) + 1;
     const idempotencyKey = createIdempotencyKey(job.id);
+    let videoPath: string | null = null;
+    let status = result.status;
+    let errorCode = result.errorCode;
+    let errorMessage = result.errorMessage;
 
-    const nextForRecurring = result.status === "success" ? computeNextRunAt(new Date(), job.repeat_type as RepeatType) : null;
-    const retryAt = result.status === "failed" ? new Date(Date.now() + getBackoffMinutes(attemptCount) * 60 * 1000) : null;
+    if (result.status === "success" && result.videoBuffer) {
+      const objectPath = buildVideoPath(job.user_id, job.id, logId);
+      const { error: uploadError } = await supabase.storage.from("videos").upload(objectPath, result.videoBuffer, {
+        contentType: "video/webm",
+        upsert: false,
+      });
 
-    if (result.status === "success") {
+      if (uploadError) {
+        status = "failed";
+        errorCode = "storage_upload_failed";
+        errorMessage = uploadError.message;
+      } else {
+        videoPath = objectPath;
+      }
+    }
+
+    const nextForRecurring = status === "success" ? computeNextRunAt(new Date(), job.repeat_type as RepeatType) : null;
+    const retryAt = status === "failed" ? new Date(Date.now() + getBackoffMinutes(attemptCount) * 60 * 1000) : null;
+
+    if (status === "success") {
       succeeded += 1;
     } else {
       failed += 1;
     }
 
     await supabase.from("visit_logs").insert({
+      id: logId,
       user_id: job.user_id,
       job_id: job.id,
       idempotency_key: idempotencyKey,
-      status: result.status,
+      status,
       started_at: toIso(result.startedAt),
       ended_at: toIso(result.endedAt),
       duration_sec: result.durationSec,
-      video_path: result.videoPath,
-      error_code: result.errorCode,
-      error_message: result.errorMessage,
+      video_path: videoPath,
+      error_code: errorCode,
+      error_message: errorMessage,
     });
 
     const nextStatus =
-      result.status === "success"
+      status === "success"
         ? job.repeat_type === "once"
           ? "completed"
           : "pending"
@@ -122,7 +108,7 @@ export async function GET(request: Request) {
           : "retry";
 
     const nextRunAt =
-      result.status === "success"
+      status === "success"
         ? nextForRecurring
           ? nextForRecurring.toISOString()
           : null
@@ -135,7 +121,7 @@ export async function GET(request: Request) {
       .update({
         status: nextStatus,
         attempt_count: attemptCount,
-        last_error: result.errorMessage,
+        last_error: errorMessage,
         last_run_at: toIso(result.endedAt),
         next_run_at: nextRunAt,
         locked_at: null,

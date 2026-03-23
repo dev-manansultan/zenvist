@@ -23,7 +23,6 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
   const [visitTime, setVisitTime] = useState(
     initialValues?.next_run_at ? initialValues.next_run_at.slice(0, 16) : "",
   );
-  const [repeatType, setRepeatType] = useState<RepeatType>(initialValues?.repeat_type ?? "once");
   const [durationSec, setDurationSec] = useState(initialValues?.duration_sec ?? 45);
   const [isActive, setIsActive] = useState(initialValues?.is_active ?? true);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +56,6 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
     const payload = {
       url,
       visitTime: new Date(visitTime).toISOString(),
-      repeatType,
       durationSec,
     };
 
@@ -100,7 +98,6 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
     const payload = {
       url,
       visitTime: new Date(visitTime).toISOString(),
-      repeatType,
       durationSec,
       isActive,
     };
@@ -168,22 +165,10 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">
-          <label htmlFor="repeat-type" className="text-sm font-medium text-zinc-700">
-            Repeat
-          </label>
-          <select
-            id="repeat-type"
-            value={repeatType}
-            onChange={(event) => {
-              setRepeatType(event.target.value as RepeatType);
-              resetPreviewState();
-            }}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          >
-            <option value="once">Once</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-          </select>
+          <label className="text-sm font-medium text-zinc-700">Schedule Type</label>
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+            Daily at selected time
+          </div>
         </div>
 
         <div className="space-y-1">

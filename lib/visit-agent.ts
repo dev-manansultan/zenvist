@@ -21,7 +21,10 @@ interface VideoLike {
 interface PageLike {
   goto: (url: string, options: { waitUntil: "domcontentloaded"; timeout: number }) => Promise<unknown>;
   waitForTimeout: (ms: number) => Promise<void>;
-  mouse: { wheel: (deltaX: number, deltaY: number) => Promise<void> };
+  mouse: {
+    move: (x: number, y: number, options?: { steps?: number }) => Promise<void>;
+    wheel: (deltaX: number, deltaY: number) => Promise<void>;
+  };
   video: () => VideoLike | null;
 }
 
@@ -53,15 +56,31 @@ function randomViewport() {
 
 async function simulateHumanBehavior(page: {
   waitForTimeout: (ms: number) => Promise<void>;
-  mouse: { wheel: (deltaX: number, deltaY: number) => Promise<void> };
-}, durationSec: number) {
+  mouse: {
+    move: (x: number, y: number, options?: { steps?: number }) => Promise<void>;
+    wheel: (deltaX: number, deltaY: number) => Promise<void>;
+  };
+}, durationSec: number, viewport: { width: number; height: number }) {
   const targetMs = Math.max(5, durationSec) * 1000;
   const started = Date.now();
 
+  // Initial reading pause so behavior is less robotic.
+  await page.waitForTimeout(1200 + randomInt(0, 1800));
+
   while (Date.now() - started < targetMs) {
-    const pause = 1000 + randomInt(0, 2000);
+    const pause = 700 + randomInt(0, 2600);
     await page.waitForTimeout(pause);
-    await page.mouse.wheel(0, randomInt(250, 1400));
+
+    const x = 40 + randomInt(0, Math.max(80, viewport.width - 80));
+    const y = 80 + randomInt(0, Math.max(120, viewport.height - 120));
+    await page.mouse.move(x, y, { steps: 8 + randomInt(0, 18) });
+
+    const down = randomInt(0, 100) > 20;
+    const deltaY = down ? randomInt(250, 1600) : -randomInt(120, 650);
+    await page.mouse.wheel(0, deltaY);
+
+    // Small dwell after scroll to simulate reading.
+    await page.waitForTimeout(300 + randomInt(0, 900));
 
     if (Date.now() - started >= targetMs) {
       break;
@@ -96,8 +115,10 @@ export async function runPlaywrightVisit(job: VisitJob, maxDurationSec: number):
       headless: true,
     });
 
+    const viewport = randomViewport();
+
     context = await browser.newContext({
-      viewport: randomViewport(),
+      viewport,
       recordVideo: {
         dir: sessionDir,
         size: { width: 1280, height: 720 },
@@ -110,7 +131,7 @@ export async function runPlaywrightVisit(job: VisitJob, maxDurationSec: number):
       timeout: visitDuration * 1000,
     });
 
-    await simulateHumanBehavior(page, visitDuration);
+    await simulateHumanBehavior(page, visitDuration, viewport);
 
     const video = page.video();
 

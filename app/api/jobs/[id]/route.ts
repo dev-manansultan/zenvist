@@ -33,7 +33,6 @@ export async function PATCH(request: Request, context: RouteContext<"/api/jobs/[
 
   if (parsed.data.url !== undefined) updates.url = parsed.data.url;
   if (parsed.data.visitTime !== undefined) updates.next_run_at = parsed.data.visitTime;
-  if (parsed.data.repeatType !== undefined) updates.repeat_type = parsed.data.repeatType;
   if (parsed.data.durationSec !== undefined) updates.duration_sec = parsed.data.durationSec;
   if (parsed.data.isActive !== undefined) {
     updates.is_active = parsed.data.isActive;

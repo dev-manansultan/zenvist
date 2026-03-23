@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   const insertPayload = {
     user_id: userData.user.id,
     url: payload.url,
-    repeat_type: payload.repeatType,
+    repeat_type: "daily",
     duration_sec: payload.durationSec,
     next_run_at: payload.visitTime,
     status: "pending",

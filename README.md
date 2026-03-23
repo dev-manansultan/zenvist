@@ -35,6 +35,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 CRON_SECRET=
 BATCH_SIZE=5
 MAX_DURATION_SEC=120
+RETENTION_DAYS=7
 ```
 
 4. Apply SQL schema in Supabase SQL editor:
@@ -69,6 +70,7 @@ API routes:
 - GET /api/logs
 - POST /api/logs/[id]/video-url
 - GET /api/internal/run-due-jobs
+- GET /api/internal/cleanup-retention
 
 Auth route:
 - POST /api/auth/signout
@@ -79,7 +81,12 @@ Cron is configured in:
 - vercel.json
 
 Schedule:
-- every minute -> /api/internal/run-due-jobs
+- once per day (02:00 UTC) -> /api/internal/run-due-jobs
+- once per day (03:00 UTC) -> /api/internal/cleanup-retention
+
+Hobby plan note:
+- Vercel Hobby supports up to 2 cron jobs per project.
+- Each cron job can only run once per day.
 
 You must set CRON_SECRET in Vercel environment variables and send it as:
 - Authorization: Bearer <CRON_SECRET>

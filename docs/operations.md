@@ -1,9 +1,14 @@
 # Operations and Reliability
 
 ## Scheduler Model
-- Scheduler: Vercel Cron every minute.
+- Scheduler: Vercel Cron once per day on Hobby plan.
 - Entrypoint: /api/internal/run-due-jobs.
+- Retention Entrypoint: /api/internal/cleanup-retention.
 - Protection: CRON_SECRET bearer token.
+
+Hobby plan constraints:
+- Maximum 2 cron jobs per project.
+- Each cron job can run once per day.
 
 ## Runtime Limits Strategy
 Because browser sessions are heavy:
@@ -54,6 +59,7 @@ Suggested logs:
 
 Cleanup job:
 - Daily cron to delete expired storage objects and mark logs as expired.
+- Retention period controlled by RETENTION_DAYS env var (default 7).
 
 ## Security Controls
 - Service role key never exposed to browser.

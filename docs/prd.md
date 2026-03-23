@@ -240,7 +240,7 @@ GET /api/logs
 
 ### MVP Approach (Vercel Only)
 
-- Use Vercel Cron to trigger a protected internal API route every minute.
+- Use Vercel Cron to trigger a protected internal API route once per day (Hobby plan limit).
 - Internal route fetches due jobs from Supabase and executes visits.
 - Results are written to `visit_logs` and videos are uploaded to Supabase Storage.
 

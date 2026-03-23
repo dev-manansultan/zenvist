@@ -60,7 +60,12 @@ export default async function LogDetailPage({ params }: { params: Promise<{ id: 
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="mb-3 text-base font-semibold text-zinc-900">Video Playback</h2>
-        {log.video_path ? <PlayVideoButton logId={log.id} /> : <p className="text-sm text-zinc-600">No video available for this run.</p>}
+        <PlayVideoButton
+          logId={log.id}
+          startedAt={log.started_at}
+          durationSec={log.duration_sec}
+          status={log.status}
+        />
       </div>
     </section>
   );

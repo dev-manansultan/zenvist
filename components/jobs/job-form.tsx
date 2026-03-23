@@ -32,10 +32,8 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<{
     resolvedUrl: string;
-    visitTime: string;
-    repeatType: RepeatType;
-    durationSec: number;
-    initialStatus: string;
+    videoUrl: string;
+    videoPath: string;
     statusCode: number | null;
   } | null>(null);
   const [hasPreviewed, setHasPreviewed] = useState(mode === "edit");
@@ -81,10 +79,8 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
     const preview = body?.data?.preview;
     setPreviewData({
       resolvedUrl: preview.resolvedUrl,
-      visitTime: preview.visitTime,
-      repeatType: preview.repeatType,
-      durationSec: preview.durationSec,
-      initialStatus: preview.initialStatus,
+      videoUrl: preview.videoUrl,
+      videoPath: preview.videoPath,
       statusCode: preview?.probe?.status ?? null,
     });
     setHasPreviewed(true);
@@ -237,6 +233,16 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
 
           {previewError ? <p className="mt-3 text-sm text-red-600">{previewError}</p> : null}
 
+          {previewLoading ? (
+            <div className="mt-3 rounded-lg border border-zinc-200 bg-white p-3">
+              <div className="flex items-center gap-2 text-sm text-zinc-700">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
+                <span>Preparing preview details...</span>
+              </div>
+              <p className="mt-1 text-xs text-zinc-500">Checking URL reachability and validating schedule settings.</p>
+            </div>
+          ) : null}
+
           {previewData ? (
             <div className="mt-3 space-y-1 text-sm text-zinc-700">
               <p>
@@ -246,17 +252,11 @@ export function JobForm({ mode, jobId, initialValues }: JobFormProps) {
                 <span className="font-medium">Status code:</span> {previewData.statusCode ?? "n/a"}
               </p>
               <p>
-                <span className="font-medium">Schedule:</span> {new Date(previewData.visitTime).toLocaleString()}
+                <span className="font-medium">Preview file:</span> {previewData.videoPath}
               </p>
-              <p>
-                <span className="font-medium">Repeat:</span> {previewData.repeatType}
-              </p>
-              <p>
-                <span className="font-medium">Duration:</span> {previewData.durationSec}s
-              </p>
-              <p>
-                <span className="font-medium">Initial status:</span> {previewData.initialStatus}
-              </p>
+              <div className="pt-2">
+                <video src={previewData.videoUrl} controls className="w-full rounded-xl border border-zinc-200" />
+              </div>
             </div>
           ) : null}
         </div>

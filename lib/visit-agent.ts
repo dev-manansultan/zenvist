@@ -70,6 +70,9 @@ async function simulateHumanBehavior(page: {
 }
 
 export async function runPlaywrightVisit(job: VisitJob, maxDurationSec: number): Promise<VisitAgentResult> {
+  // Keep Playwright assets inside the deployed app bundle instead of ~/.cache.
+  process.env.PLAYWRIGHT_BROWSERS_PATH = "0";
+
   const startedAt = new Date();
   const visitDuration = Math.max(5, Math.min(job.duration_sec ?? 45, maxDurationSec));
 

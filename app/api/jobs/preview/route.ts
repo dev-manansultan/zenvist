@@ -8,6 +8,7 @@ import { createJobSchema } from "@/lib/validation/jobs";
 import { runPlaywrightVisit } from "@/lib/visit-agent";
 import { probeUrl } from "@/lib/url-health";
 
+export const runtime = "nodejs";
 export const maxDuration = 120;
 
 function buildPreviewVideoPath(userId: string, previewId: string) {

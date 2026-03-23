@@ -8,6 +8,7 @@ import { env } from "@/lib/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { RepeatType, VisitJob } from "@/lib/types";
 
+export const runtime = "nodejs";
 export const maxDuration = 60;
 
 function buildVideoPath(userId: string, jobId: string, logId: string) {

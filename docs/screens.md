@@ -14,6 +14,9 @@ This document defines the full screen-level flow for Zenvist based on MVP use ca
 /dashboard/jobs/:id/edit-> Edit job
 /dashboard/logs         -> Logs list
 /dashboard/logs/:id     -> Log detail + video playback
+/dashboard/wallet       -> Credits wallet (Part 2)
+/dashboard/campaigns    -> Campaign manager (Part 2)
+/dashboard/contributor  -> Desktop contributor health (Part 2)
 ```
 
 ## 3. Primary User Flows
@@ -60,6 +63,22 @@ This document defines the full screen-level flow for Zenvist based on MVP use ca
 1. Failed run appears in logs with error details.
 2. Related job shows retry state and next run time.
 3. User sees final terminal failure after max attempts.
+
+### Flow H: Part 2 Onboarding (3-Step)
+1. User opens landing or onboarding panel.
+2. User sees 3 steps:
+  - Setup account
+  - Earn or buy credits
+  - Receive visitors
+3. User clicks Connect Desktop App or Buy Credits.
+4. User is routed to wallet/campaign setup.
+
+### Flow I: Credits to Campaign Activation (Part 2)
+1. User opens /dashboard/wallet and confirms available credits.
+2. User opens /dashboard/campaigns and creates campaign.
+3. User sets URL, daily cap, and targeting.
+4. System validates credit sufficiency and starts campaign.
+5. User tracks runs and quality in logs.
 
 ## 4. Screen Definitions
 
@@ -248,6 +267,90 @@ States:
 - Video ready
 - Video not available
 - Signed URL expired and refreshed
+
+## 4.8 Wallet Screen (Part 2)
+Route: /dashboard/wallet
+
+Goals:
+- Let users understand and control credits.
+
+UI Sections:
+- Current balance card
+- Earned vs spent chart
+- Credit ledger table
+- Buy credits CTA
+
+Primary Actions:
+- Buy credits
+- Open contributor setup
+
+## 4.9 Campaign Manager Screen (Part 2)
+Route: /dashboard/campaigns
+
+Goals:
+- Create and monitor visitor campaigns.
+
+UI Sections:
+- Campaign list with status, daily cap, spend
+- Create campaign modal/page
+- Campaign performance panel
+
+Primary Actions:
+- Create campaign
+- Pause/resume campaign
+- Edit targeting
+
+## 4.10 Contributor Health Screen (Part 2)
+Route: /dashboard/contributor
+
+Goals:
+- Show device verification and earning health.
+
+UI Sections:
+- Device status (verified/pending/revoked)
+- Last heartbeat and app version
+- Trust score and warnings
+- Recent credit earnings
+
+Primary Actions:
+- Reconnect desktop app
+- Open troubleshooting guide
+
+## 4.11 Traffic Exchange Overview Screen (Part 2)
+Route: /dashboard/exchange
+
+Goals:
+- Give users a single-glance control center for traffic exchange performance.
+
+Layout Sections (top to bottom):
+- Announcement/tip banners
+- Membership plan card with slot progress
+- Traffic statistics row
+- Earning statistics row
+- Chart grid (24h and 6-month trends)
+- Referrals summary row
+- Live traffic map
+
+Primary Actions:
+- Connect/Reconnect desktop app
+- Buy credits
+- Open websites/campaign setup
+- Open wallet
+
+Critical KPIs:
+- Website slots used/available
+- Session slots used/available
+- Earning ratio
+- Visits and points trend
+
+Empty State:
+- Show zeroed widgets and onboarding CTA instead of hiding cards.
+
+Loading State:
+- Skeleton cards for each section with independent fallback.
+
+Error State:
+- Inline retry per section so one failing widget does not block whole page.
 
 ## 5. Cross-Screen Components
 
